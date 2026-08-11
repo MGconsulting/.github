@@ -1,0 +1,4 @@
+[tools]
+task = "3"
+actionlint = "1.7.12"
+"pipx:pre-commit" = "4.1.0"
