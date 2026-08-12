@@ -88,11 +88,13 @@ jobs:
           AUTH_REPO: ${{ inputs.git-auth-repo }}
         run: |
           set -euo pipefail
-          # App tokens are JWTs that cannot be embedded in a URL. Scope the
-          # extraheader to the single private dependency repo (like
-          # actions/checkout does) so public clones of pre-commit hooks remain
-          # anonymous. ansible-galaxy's collection install then authenticates.
-          git config --global "http.https://github.com/${AUTH_REPO}.git/.extraheader" "AUTHORIZATION: Bearer ${APP_TOKEN}"
+          # GitHub App tokens are JWTs that cannot be embedded in a URL. Encode
+          # the token as git basic auth (x-access-token:<token>, the same scheme
+          # actions/checkout uses) and scope it to the single private dependency
+          # repo so public clones of pre-commit hooks remain anonymous.
+          # ansible-galaxy's collection install then authenticates.
+          basic="$(printf 'x-access-token:%s' "$APP_TOKEN" | base64 -w0)"
+          git config --global "http.https://github.com/${AUTH_REPO}.git/.extraheader" "AUTHORIZATION: basic ${basic}"
 
       - uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4
         with:
