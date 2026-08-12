@@ -32,16 +32,23 @@ on:
           mise.toml
           .pre-commit-config.yaml
         type: string
-      # Optional GitHub App identity. When supplied, the job mints an App token
-      # and configures git to use it for HTTPS clones, so linters that pull a
-      # private dependency (e.g. ansible-galaxy installing a private collection)
-      # can authenticate. Omit them to keep the job credential-free.
+      # Optional GitHub App identity for private-dependency git access. When
+      # supplied alongside git-auth-repo, the job mints an App token and scopes
+      # it to exactly that repository's HTTPS clones (e.g. ansible-galaxy
+      # installing a private collection). Omit them to keep the job
+      # credential-free.
       github-app-id:
         description: GitHub App ID used to mint a token for private-dependency clones.
         required: false
         type: string
       github-app-owner:
         description: Organization where the GitHub App is installed.
+        required: false
+        type: string
+      git-auth-repo:
+        description: >-
+          The private repository to authenticate HTTPS clones for, e.g.
+          "MGconsulting/ansible-collection". Required with github-app-id.
         required: false
         type: string
     secrets:
@@ -78,13 +85,14 @@ jobs:
         name: Authenticate git for private dependencies
         env:
           APP_TOKEN: ${{ steps.github-app-token.outputs.token }}
+          AUTH_REPO: ${{ inputs.git-auth-repo }}
         run: |
           set -euo pipefail
-          # App tokens are JWTs that cannot be embedded in a URL. The
-          # extraheader approach (also used by actions/checkout) authenticates
-          # HTTPS clones to github.com, including ansible-galaxy's installs of a
-          # private collection.
-          git config --global http.https://github.com/.extraheader "AUTHORIZATION: Bearer ${APP_TOKEN}"
+          # App tokens are JWTs that cannot be embedded in a URL. Scope the
+          # extraheader to the single private dependency repo (like
+          # actions/checkout does) so public clones of pre-commit hooks remain
+          # anonymous. ansible-galaxy's collection install then authenticates.
+          git config --global "http.https://github.com/${AUTH_REPO}.git/.extraheader" "AUTHORIZATION: Bearer ${APP_TOKEN}"
 
       - uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4
         with:
