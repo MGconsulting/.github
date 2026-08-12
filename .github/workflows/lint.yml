@@ -32,10 +32,10 @@ on:
           mise.toml
           .pre-commit-config.yaml
         type: string
-      # Optional GitHub App identity. When all three are supplied, the job mints
-      # an App token and configures git to use it for HTTPS clones, so linters
-      # that pull a private dependency (e.g. ansible-galaxy installing a private
-      # collection) can authenticate. Omit them to keep the job credential-free.
+      # Optional GitHub App identity. When supplied, the job mints an App token
+      # and configures git to use it for HTTPS clones, so linters that pull a
+      # private dependency (e.g. ansible-galaxy installing a private collection)
+      # can authenticate. Omit them to keep the job credential-free.
       github-app-id:
         description: GitHub App ID used to mint a token for private-dependency clones.
         required: false
@@ -44,13 +44,12 @@ on:
         description: Organization where the GitHub App is installed.
         required: false
         type: string
-      github-app-private-key-secret-id:
-        description: Bitwarden secret ID for the GitHub App private key.
-        required: false
-        type: string
     secrets:
-      # Required only when the GitHub App identity inputs above are supplied.
-      bws_access_token:
+      # The App private key. Required only when the GitHub App identity inputs
+      # above are supplied. The caller is responsible for providing it as a
+      # secret (e.g. from its own secrets store); this workflow never talks to
+      # Bitwarden or any other secrets manager.
+      github_app_private_key:
         required: false
 
 jobs:
@@ -66,27 +65,16 @@ jobs:
       # GITHUB_TOKEN for the linting repository; this overrides HTTPS clones to
       # github.com so they use the org-wide App token instead. Callers that lint
       # private collections should install the collection once so it is cached.
-      - if: inputs.github-app-id != '' && inputs.github-app-private-key-secret-id != ''
-        name: Authenticate git for private dependencies
-        env:
-          GITHUB_APP_PRIVATE_KEY_SECRET_ID: ${{ inputs.github-app-private-key-secret-id }}
-        uses: bitwarden/sm-action@f1de238fc00c738c56140796018be9084c2b5d21 # v2
-        with:
-          access_token: ${{ secrets.bws_access_token }}
-          base_url: https://vault.bitwarden.eu
-          secrets: |
-            ${{ env.GITHUB_APP_PRIVATE_KEY_SECRET_ID }} > GITHUB_APP_PRIVATE_KEY
-
-      - if: inputs.github-app-id != '' && inputs.github-app-private-key-secret-id != ''
+      - if: inputs.github-app-id != ''
         name: Mint GitHub App token for private dependencies
         id: github-app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ inputs.github-app-id }}
           owner: ${{ inputs.github-app-owner }}
-          private-key: ${{ env.GITHUB_APP_PRIVATE_KEY }}
+          private-key: ${{ secrets.github_app_private_key }}
 
-      - if: inputs.github-app-id != '' && inputs.github-app-private-key-secret-id != ''
+      - if: inputs.github-app-id != ''
         name: Point git HTTPS clones at the GitHub App token
         env:
           APP_TOKEN: ${{ steps.github-app-token.outputs.token }}
