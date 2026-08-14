@@ -85,6 +85,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: ${{ inputs.fetch-depth }}
+          persist-credentials: false
 
       - uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4
         with:
@@ -139,7 +140,7 @@ jobs:
           key: ${{ runner.os }}-${{ inputs.cache-id }}-${{ inputs.working-directory }}-${{ steps.cache-key.outputs.hash }}
 
       - name: Upload SARIF to Code Scanning
-        if: inputs.upload-sarif && inputs.sarif-path != ''
+        if: always() && inputs.upload-sarif && inputs.sarif-path != ''
         uses: github/codeql-action/upload-sarif@c3400c2f38909e0dcf3c3a41f2030a8217be5d3e # v3
         with:
           sarif_file: ${{ inputs.working-directory }}/${{ inputs.sarif-path }}

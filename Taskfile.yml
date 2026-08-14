@@ -16,6 +16,7 @@ tasks:
       - actionlint .github/workflows/*.yml
 
   security:
-    desc: Scan Git history for exposed secrets
+    desc: Scan Git history and GitHub Actions security posture
     cmds:
       - gitleaks git --redact --no-banner .
+      - zizmor .github/workflows
