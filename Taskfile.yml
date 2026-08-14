@@ -14,3 +14,8 @@ tasks:
     desc: Validate every workflow in the catalog
     cmds:
       - actionlint .github/workflows/*.yml
+
+  security:
+    desc: Scan Git history for exposed secrets
+    cmds:
+      - gitleaks git --redact --no-banner .
