@@ -76,7 +76,7 @@ on:
 
 jobs:
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Callers that set upload-sarif: true must grant security-events: write on
     # the calling job; this job's permissions cannot exceed the caller's.
     permissions:
